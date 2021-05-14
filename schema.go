@@ -8,10 +8,24 @@ type Response struct {
 	Message string     `json:"message"`
 }
 
+type List struct {
+	NextCursor string `json:"next_cursor"`
+	HasMore    bool   `json:"has_more"`
+}
+
 type DatabaseList struct {
-	Results    []*DatabaseObject `json:"results,omitempty"`
-	NextCursor string            `json:"next_cursor"`
-	HasMore    bool              `json:"has_more"`
+	Results []*DatabaseObject `json:"results,omitempty"`
+	List
+}
+
+type BlockList struct {
+	Results []*BlockObject `json:"results,omitempty"`
+	List
+}
+
+type UserList struct {
+	Results []*UserObject `json:"results,omitempty"`
+	List
 }
 
 type UUID = string
@@ -57,6 +71,59 @@ type DatabaseObject struct {
 	Title      []*RichTextObject          `json:"title"`
 	Properties map[string]*PropertyConfig `json:"properties"`
 }
+
+type BlockObject struct {
+	Object      ObjectType `json:"object,omitempty"`
+	Id          UUID       `json:"id,omitempty"`
+	Type        BlockType  `json:"type,omitempty"`
+	CreatedAt   *time.Time `json:"created_time,omitempty"`
+	ModifiedAt  *time.Time `json:"last_edited_time,omitempty"`
+	HasChildren bool       `json:"has_children,omitempty"`
+
+	Paragraph    TextBlock    `json:"paragraph,omitempty"`
+	Heading1     HeadingBlock `json:"heading_1,omitempty"`
+	Heading2     HeadingBlock `json:"heading_2,omitempty"`
+	Heading3     HeadingBlock `json:"heading_3,omitempty"`
+	BulletedList TextBlock    `json:"bulleted_list_item,omitempty"`
+	NumberedList TextBlock    `json:"numbered_list_item,omitempty"`
+	ToDo         ToDoBlock    `json:"to_do,omitempty"`
+	Toggle       TextBlock    `json:"toggle,omitempty"`
+	ChildPage    ChildBlock   `json:"child_page,omitempty"`
+}
+
+type TextBlock struct {
+	Text     []*RichTextObject `json:"text"`
+	Children []*BlockObject    `json:"children"`
+}
+
+type HeadingBlock struct {
+	Text []*RichTextObject `json:"text"`
+}
+
+type ToDoBlock struct {
+	Text     []*RichTextObject `json:"text"`
+	Checked  bool              `json:"checked,omitempty"`
+	Children []*BlockObject    `json:"children"`
+}
+
+type ChildBlock struct {
+	Title string `json:"title"`
+}
+
+type BlockType string
+
+const (
+	Paragraph        BlockType = "paragraph"
+	Heading1                   = "heading_1"
+	Heading2                   = "heading_2"
+	Heading3                   = "heading_3"
+	BulletedListItem           = "bulleted_list_item"
+	NumberedListItem           = "numbered_list_item"
+	ToDo                       = "to_do"
+	Toggle                     = "toggle"
+	ChildPage                  = "child_page"
+	Unsupported                = "unsupported"
+)
 
 type PropertyType string
 
@@ -263,8 +330,8 @@ type UserObject struct {
 	Type      UserType   `json:"type,omitempty"`
 	AvatarUrl string     `json:"avatar_url,omitempty"`
 
-	Person PersonObject `json:"person,omitempty"`
-	Bot    BotObject    `json:"bot,omitemtpy"`
+	Person *PersonObject `json:"person,omitempty"`
+	Bot    *BotObject    `json:"bot,omitemtpy"`
 }
 
 type Color string

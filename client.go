@@ -87,9 +87,10 @@ func (c *Client) ListDatabases() ([]*DatabaseObject, error) {
 
 	databaseObjects := databaseList.Results
 	hasMore := databaseList.HasMore
+	nextCursor := databaseList.NextCursor
 	for hasMore {
 
-		req, err := http.NewRequest("GET", c.baseUrl+"/databases?page_size=100", nil)
+		req, err := http.NewRequest("GET", c.baseUrl+"/databases?page_size=100&next_cursor="+nextCursor, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -101,6 +102,7 @@ func (c *Client) ListDatabases() ([]*DatabaseObject, error) {
 
 		databaseObjects = append(databaseObjects, databaseList.Results...)
 		hasMore = databaseList.HasMore
+		nextCursor = databaseList.NextCursor
 	}
 
 	return databaseObjects, nil
@@ -140,7 +142,9 @@ func (c *Client) PostPage(p *PageObject) (*PageObject, error) {
 }
 
 func (c *Client) UpdatePage(pageId UUID, properties map[string]*PropertyValue) (*PageObject, error) {
-	body, err := json.Marshal(&PageObject{
+	body, err := json.Marshal(struct {
+		Properties map[string]*PropertyValue `json:"properties"`
+	}{
 		Properties: properties,
 	})
 	if err != nil {
@@ -158,4 +162,109 @@ func (c *Client) UpdatePage(pageId UUID, properties map[string]*PropertyValue) (
 	}
 
 	return pageObject, nil
+}
+
+func (c *Client) GetBlockChildren(blockId UUID) ([]*BlockObject, error) {
+	req, err := http.NewRequest("GET", c.baseUrl+"/blocks/"+blockId+"/children?page_size=100", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	blockList := new(BlockList)
+	if err = c.DoAndRead(req, blockList); err != nil {
+		return nil, err
+	}
+
+	blockObjects := blockList.Results
+	hasMore := blockList.HasMore
+	nextCursor := blockList.NextCursor
+	for hasMore {
+
+		req, err := http.NewRequest("GET", c.baseUrl+"/blocks/"+blockId+"/children?page_size=100&next_cursor="+nextCursor, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		blockList := new(BlockList)
+		if err = c.DoAndRead(req, blockList); err != nil {
+			return nil, err
+		}
+
+		blockObjects = append(blockObjects, blockList.Results...)
+		hasMore = blockList.HasMore
+		nextCursor = blockList.NextCursor
+	}
+
+	return blockObjects, nil
+}
+
+func (c *Client) AppendBlockChildren(blockId UUID, children []*BlockObject) (*BlockObject, error) {
+	body, err := json.Marshal(struct {
+		Children []*BlockObject `json:"children"`
+	}{
+		Children: children,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", c.baseUrl+"/blocks/"+blockId+"/children", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	blockObject := new(BlockObject)
+	if err = c.DoAndRead(req, blockObject); err != nil {
+		return nil, err
+	}
+
+	return blockObject, nil
+}
+
+func (c *Client) GetUser(userId UUID) (*UserObject, error) {
+	req, err := http.NewRequest("GET", c.baseUrl+"/users/"+userId, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	userObject := new(UserObject)
+	if err = c.DoAndRead(req, userObject); err != nil {
+		return nil, err
+	}
+
+	return userObject, nil
+}
+
+func (c *Client) ListUsers() ([]*UserObject, error) {
+	req, err := http.NewRequest("GET", c.baseUrl+"/users?page_size=100", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	userList := new(UserList)
+	if err = c.DoAndRead(req, userList); err != nil {
+		return nil, err
+	}
+
+	userObjects := userList.Results
+	hasMore := userList.HasMore
+	nextCursor := userList.NextCursor
+	for hasMore {
+
+		req, err := http.NewRequest("GET", c.baseUrl+"/users?page_size=100&next_cursor="+nextCursor, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		userList := new(UserList)
+		if err = c.DoAndRead(req, userList); err != nil {
+			return nil, err
+		}
+
+		userObjects = append(userObjects, userList.Results...)
+		hasMore = userList.HasMore
+		nextCursor = userList.NextCursor
+	}
+
+	return userObjects, nil
 }
